@@ -83,6 +83,7 @@ class Resize(object):
                 "minimal": Scale as least as possible.  (Output size might be smaller than given size.)
                 Defaults to "lower_bound".
         """
+        """
         print("Params passed to Resize transform:")
         print("\twidth: ", width)
         print("\theight: ", height)
@@ -90,6 +91,7 @@ class Resize(object):
         print("\tkeep_aspect_ratio: ", keep_aspect_ratio)
         print("\tensure_multiple_of: ", ensure_multiple_of)
         print("\tresize_method: ", resize_method)
+        """
 
         self.__width = width
         self.__height = height
@@ -338,7 +340,7 @@ class MidasCore(nn.Module):
         if "img_size" in kwargs:
             kwargs = MidasCore.parse_img_size(kwargs)
         img_size = kwargs.pop("img_size", [384, 384])
-        print("img_size", img_size)
+        # print("img_size", img_size)
         if not os.getenv("IW3_DEBUG"):
             midas = torch.hub.load("nagadomi/MiDaS_iw3:master", midas_model_type,
                                    pretrained=use_pretrained_midas, force_reload=force_reload)
