@@ -189,6 +189,9 @@ class PrepForMidas(object):
         return self.normalization(self.resizer(x))
 
 
+fp16_max_value = torch.finfo(torch.float16).max - 1
+
+
 class MidasCore(nn.Module):
     def __init__(self, midas, trainable=False, fetch_features=True, layer_names=('out_conv', 'l4_rn', 'r4', 'r3', 'r2', 'r1'), freeze_bn=False, keep_aspect_ratio=True,
                  img_size=384, **kwargs):
@@ -269,10 +272,15 @@ class MidasCore(nn.Module):
 
             # print("Input size to Midascore", x.shape)
             rel_depth = self.core(x)
+            if rel_depth.dtype == torch.float16:
+                rel_depth = torch.clamp(rel_depth, -fp16_max_value, fp16_max_value)
             # print("Output from midas shape", rel_depth.shape)
             if not self.fetch_features:
                 return rel_depth
-        out = [self.core_out[k] for k in self.layer_names]
+        if rel_depth.dtype == torch.float16:
+            out = [torch.clamp(self.core_out[k], -fp16_max_value, fp16_max_value) for k in self.layer_names]
+        else:
+            out = [self.core_out[k] for k in self.layer_names]
 
         if return_rel_depth:
             return rel_depth, out
