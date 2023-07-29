@@ -38,7 +38,7 @@ from zoedepth.utils.misc import (RunningAverageDict, colors, compute_metrics,
 
 
 @torch.no_grad()
-def infer(model, images, **kwargs):
+def infer(model, images, use_amp=False, **kwargs):
     """Inference with flip augmentation"""
     # images.shape = N, C, H, W
     def get_depth_from_prediction(pred):
@@ -51,8 +51,8 @@ def infer(model, images, **kwargs):
         else:
             raise NotImplementedError(f"Unknown output type {type(pred)}")
         return pred
-
-    pred1 = model(images, **kwargs)
+    with torch.autocast(device_type="cuda", enabled=use_amp):
+        pred1 = model(images, **kwargs)
     pred1 = get_depth_from_prediction(pred1)
 
     pred2 = model(torch.flip(images, [3]), **kwargs)
@@ -68,7 +68,7 @@ def infer(model, images, **kwargs):
 def evaluate(model, test_loader, config, round_vals=True, round_precision=3):
     model.eval()
     metrics = RunningAverageDict()
-    for i, sample in tqdm(enumerate(test_loader), total=len(test_loader)):
+    for i, sample in tqdm(enumerate(test_loader), total=len(test_loader), ncols=80):
         if 'has_valid_depth' in sample:
             if not sample['has_valid_depth']:
                 continue
@@ -77,7 +77,7 @@ def evaluate(model, test_loader, config, round_vals=True, round_precision=3):
         depth = depth.squeeze().unsqueeze(0).unsqueeze(0)
         focal = sample.get('focal', torch.Tensor(
             [715.0873]).cuda())  # This magic number (focal) is only used for evaluating BTS model
-        pred = infer(model, image, dataset=sample['dataset'][0], focal=focal)
+        pred = infer(model, image, dataset=sample['dataset'][0], focal=focal, use_amp=config.use_amp)
 
         # Save image, depth, pred for visualization
         if "save_images" in config and config.save_images:
