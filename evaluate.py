@@ -54,8 +54,8 @@ def infer(model, images, use_amp=False, **kwargs):
     with torch.autocast(device_type="cuda", enabled=use_amp):
         pred1 = model(images, **kwargs)
     pred1 = get_depth_from_prediction(pred1)
-
-    pred2 = model(torch.flip(images, [3]), **kwargs)
+    with torch.autocast(device_type="cuda", enabled=use_amp):
+        pred2 = model(torch.flip(images, [3]), **kwargs)
     pred2 = get_depth_from_prediction(pred2)
     pred2 = torch.flip(pred2, [3])
 
