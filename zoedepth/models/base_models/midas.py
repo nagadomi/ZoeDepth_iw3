@@ -272,15 +272,11 @@ class MidasCore(nn.Module):
 
             # print("Input size to Midascore", x.shape)
             rel_depth = self.core(x)
-            if rel_depth.dtype == torch.float16:
-                rel_depth = torch.clamp(rel_depth, -fp16_max_value, fp16_max_value)
+            rel_depth = torch.clamp(rel_depth, -fp16_max_value, fp16_max_value)
             # print("Output from midas shape", rel_depth.shape)
             if not self.fetch_features:
                 return rel_depth
-        if rel_depth.dtype == torch.float16:
-            out = [torch.clamp(self.core_out[k], -fp16_max_value, fp16_max_value) for k in self.layer_names]
-        else:
-            out = [self.core_out[k] for k in self.layer_names]
+        out = [torch.clamp(self.core_out[k], -fp16_max_value, fp16_max_value) for k in self.layer_names]
 
         if return_rel_depth:
             return rel_depth, out
