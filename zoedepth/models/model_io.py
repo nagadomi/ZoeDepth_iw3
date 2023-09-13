@@ -23,6 +23,8 @@
 # File author: Shariq Farooq Bhat
 
 import torch
+import timm
+
 
 def load_state_dict(model, state_dict):
     """Load state_dict into model, handling DataParallel and DistributedDataParallel. Also checks for "model" key in state_dict.
@@ -45,6 +47,14 @@ def load_state_dict(model, state_dict):
             k = 'module.' + k
 
         state[k] = v
+
+    # Fix timm >= 0.9.6 compatibility issue
+    if isinstance(model.core.core.pretrained.model, timm.models.beit.Beit):
+        persistent_names = model.state_dict().keys()
+        if "core.core.pretrained.model.blocks.0.attn.relative_position_index" not in persistent_names:
+            # In timm >= 0.9.6, `*.relative_position_index` is removed
+            # from strict state_dict (persistent=False with `register_buffer`)
+            state = {k: v for k, v in state.items() if not k.endswith(".relative_position_index")}
 
     model.load_state_dict(state)
     print("Loaded successfully")
@@ -89,4 +99,3 @@ def load_state_from_resource(model, resource: str):
         
     else:
         raise ValueError("Invalid resource type, only url:: and local:: are supported")
-    
