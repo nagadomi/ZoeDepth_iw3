@@ -27,6 +27,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from torchvision.transforms import Normalize
+from collections import defaultdict
 
 
 def denormalize(x):
@@ -44,7 +45,8 @@ def denormalize(x):
 
 def get_activation(name, bank):
     def hook(model, input, output):
-        bank[name] = output
+        device_key = str(input[0].device)
+        bank[device_key][name] = output
     return hook
 
 
@@ -209,7 +211,7 @@ class MidasCore(nn.Module):
         super().__init__()
         self.core = midas
         self.output_channels = None
-        self.core_out = {}
+        self.core_out = defaultdict(lambda: {})
         self.trainable = trainable
         self.fetch_features = fetch_features
         # midas.scratch.output_conv = nn.Identity()
@@ -276,7 +278,9 @@ class MidasCore(nn.Module):
             # print("Output from midas shape", rel_depth.shape)
             if not self.fetch_features:
                 return rel_depth
-        out = [torch.clamp(self.core_out[k], -fp16_max_value, fp16_max_value) for k in self.layer_names]
+        device_key = str(x.device)
+        out = [torch.clamp(self.core_out[device_key][k], -fp16_max_value, fp16_max_value)
+               for k in self.layer_names]
 
         if return_rel_depth:
             return rel_depth, out
@@ -326,8 +330,9 @@ class MidasCore(nn.Module):
         return self
 
     def remove_hooks(self):
-        for h in self.handles:
-            h.remove()
+        # NOTE: disable
+        # for h in self.handles:
+        #     h.remove()
         return self
 
     def __del__(self):
