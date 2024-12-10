@@ -1,3 +1,5 @@
+*~
+/checkpoints
 *.png
 **.gif
 .vscode/
